@@ -28,11 +28,11 @@ public class Group {
 	private String groupName;
 	
 	@ManyToMany
-    @JoinTable(
-            name = "user_group",
-            joinColumns = @JoinColumn(name = "group_id"),
-            inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
+	@JoinTable(
+	    name = "user_group",
+	    joinColumns = @JoinColumn(name = "group_id"),
+	    inverseJoinColumns = @JoinColumn(name = "user_id")
+	)
     private Set<User> members = new HashSet<>(); 
 	
 	@OneToMany(mappedBy = "group", cascade = CascadeType.ALL)

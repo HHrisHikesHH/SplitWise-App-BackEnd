@@ -3,31 +3,38 @@ package com.app.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import org.springframework.web.bind.annotation.RestController;
 
-import com.app.DTO.UserDTO;
+import com.app.DTO.LogInDTO;
+import com.app.DTO.SignInDTO;
 import com.app.service.UserService;
 
 @RestController
 //@CrossOrigin("http://localhost:5173")
 public class UserController {
-	
+
 	@Autowired
 	private UserService userService;
-	
+
 	@PostMapping("/signin")
-	public ResponseEntity<?> signin(@RequestBody UserDTO userDto) {
+	public ResponseEntity<?> signin(@RequestBody SignInDTO userDto) {
 //		System.out.println("inside Signin");
 		System.err.println(userDto);
-		return ResponseEntity
-				.status(HttpStatus.CREATED)
-				.body(userDto);
-//				.body(userService.signin(userDto));
+		return ResponseEntity.status(HttpStatus.CREATED).body(userService.signin(userDto));
 	}
-	
+
+	@PostMapping("/login")
+	public ResponseEntity<?> login(@RequestBody LogInDTO userDto) {
+		boolean response = userService.login(userDto);
+		System.err.println(response + " " + userDto);
+		if (response == true)
+			return ResponseEntity.ok().body(userDto);
+		else
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(userDto);
+
+	}
 
 }

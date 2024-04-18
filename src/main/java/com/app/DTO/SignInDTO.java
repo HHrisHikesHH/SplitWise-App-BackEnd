@@ -12,7 +12,7 @@ import com.app.entity.Role;
 import lombok.Data;
 
 @Data
-public class UserDTO {
+public class SignInDTO {
 
 	@NotEmpty(message = "firstName cannot be empty")
 	private String firstName;

@@ -2,7 +2,10 @@ package com.app.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.persistence.Column;
@@ -36,12 +39,31 @@ public class Transaction {
 	private User paidBy;
 	
 	@ManyToMany
-	private Set<User> membersInvolved = new HashSet<>();
+	private List<User> membersInvolved = new ArrayList<>();
 	
 	@ManyToOne
 	@JoinColumn(name = "group_id")
 	private Group group;
 	
 	private LocalDateTime currentDateTime = LocalDateTime.now();
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Transaction other = (Transaction) obj;
+		return Objects.equals(paidBy, other.paidBy) && Objects.equals(txId, other.txId);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(paidBy, txId);
+	}
+	
+	
 	
 }
