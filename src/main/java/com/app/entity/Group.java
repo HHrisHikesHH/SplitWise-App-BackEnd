@@ -1,6 +1,8 @@
 package com.app.entity;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
@@ -33,10 +35,10 @@ public class Group {
 	    joinColumns = @JoinColumn(name = "group_id"),
 	    inverseJoinColumns = @JoinColumn(name = "user_id")
 	)
-    private Set<User> members = new HashSet<>(); 
+    private List<User> members = new ArrayList<>(); 
 	
 	@OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
-    private Set<Transaction> transactions = new HashSet<>(); 
+    private List<Transaction> transactions = new ArrayList<>(); 
 	// Transactions associated with the group
 
 }

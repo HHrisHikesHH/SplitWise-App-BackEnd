@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -65,24 +66,8 @@ public class TransactionServiceImpl implements TransactionService {
 				tDTO.setGroupId(t.getGroup().getGroupId());
 				tDTO.setGroupName(t.getGroup().getGroupName());
 
-//	            tDTO.setMembersInvolvedId(t.getMembersInvolved()
-//	                    .stream()
-//	                    .map(User::getUserId) 
-//	                    .collect(Collectors.toSet()));
-				// This is Giving Stack overFloww
-
-//	           Transaction tx = transactionDao.findById(t.getTxId()).get();
-				// doing it using dao and id;
-
-//	           Set<Integer> mem = tx.getMembersInvolved()
-//	        		   .stream()
-//	        		   .map(e -> e.getUserId())
-//	        		   .collect(Collectors.toSet());
-//	           tDTO.setMembersInvolvedId(mem);
-				// still giving stack overflow
-
-				tDTO.setMembersInvolvedId(transactionDao.getMembers(t.getTxId()));
-				// worked!!
+				tDTO.setMembersInvolvedId(
+						t.getMembersInvolved().stream().map(User::getUserId).collect(Collectors.toList()));
 
 				allExpense.add(tDTO);
 			});
@@ -98,50 +83,46 @@ public class TransactionServiceImpl implements TransactionService {
 
 		Transaction tx = mapper.map(transactionDTO, Transaction.class);
 
-		Optional<Group> group = groupDao.findById(transactionDTO.getGroupId());
+		try {
+			Group group = groupDao.findById(transactionDTO.getGroupId()).get();
+			tx.setGroup(group);
+			try {
+				User paidBy = userDao.findById(transactionDTO.getPaidById()).get();
+				tx.setPaidBy(paidBy);
+				List<User> membersInvolved = new ArrayList<>();
 
-		if (group.isEmpty()) {
+				// ID to User conversion and null checking
+				for (Integer m : transactionDTO.getMembersInvolvedId()) {
+					try {
+						User user = userDao.findById(m).get();
+						membersInvolved.add(user); // error
+					} catch (NoSuchElementException e) {
+						message = String.format("Member with ID %d not available!", m);
+						status = false;
+						break;
+					}
+				}
+				//
+				tx.setMembersInvolved(membersInvolved); // for new grp add grp manually
+
+				transactionDao.save(tx);
+
+				doDebitLogic(paidBy, membersInvolved
+//					        .peek(m -> m.getMyGroups().add(group.get())) // Modify each User instance
+						, tx.getAmount());
+			} catch (NoSuchElementException e) {
+				message = "payer not found ";
+				status = false;
+			}
+		} catch (NoSuchElementException e) {
 			message = "Group not found ";
 			status = false;
 		}
-
-		tx.setGroup(group.get());
-
-		Optional<User> paidBy = userDao.findById(transactionDTO.getPaidById());
-		if (paidBy.isEmpty()) {
-			message = "payer not found ";
-			status = false;
-		}
-
-		tx.setPaidBy(paidBy.get());
-
-		List<User> membersInvolved = new ArrayList<>();
-//		membersInvolved.size(); // getting it eagerly		
-
-		// ID to User conversion and null checking
-		for (Integer m : transactionDTO.getMembersInvolvedId()) {
-			User user = userDao.findById(m).get();
-			if (user == null) {
-				message = "Member not available!";
-				status = false;
-				return responseDTO;
-			}
-			membersInvolved.add(user); //error
-		}
-//
-		tx.setMembersInvolved(membersInvolved); // for new grp add grp manually
-
-		transactionDao.save(tx);
-
-		doDebitLogic(paidBy.get(), membersInvolved
-//			        .peek(m -> m.getMyGroups().add(group.get())) // Modify each User instance
-				, tx.getAmount());
 
 		responseDTO.setMessage(message);
 		responseDTO.setSuccess(status);
 		return responseDTO;
 	}
-	
 
 	private void doDebitLogic(User paidBy, List<User> membersInvolved, BigDecimal amount) {
 		BigDecimal amountPerPerson = amount.divide(BigDecimal.valueOf(membersInvolved.size()), 2, RoundingMode.HALF_UP);
@@ -149,35 +130,56 @@ public class TransactionServiceImpl implements TransactionService {
 		updateCreditorDebitorDebt(paidBy, membersInvolved, amountPerPerson);
 
 	}
-	
 
 	// only to add/update records of debit and credit net debt not calculated here
+//	private void updateCreditorDebitorDebt(User creditor, List<User> membersInvolved, BigDecimal amount) {
+//		Set<Debt> asCreditor = creditor.getDebtsAsCreditor();
+//
+//		asCreditor.forEach(d -> {
+//			membersInvolved.forEach(u -> {
+//				// finding out if these user owe us money already or not
+//				if (!d.getDebtor().equals(u)) {
+//					Debt newDebt = new Debt();
+//					newDebt.setCreditor(creditor); // setting ourSelves as creditor
+//					newDebt.setDebtor(u); // setting this user as debitor
+//					newDebt.setAmount(amount);
+//
+//					debtDao.save(newDebt);
+//
+//					asCreditor.add(newDebt); // adding to our credit set
+//
+//					u.getDebtsAsDebtor().add(newDebt); // adding to users debit set
+//				} else {
+//					// update existing amount in ours Set where we are creditor
+//					d.setAmount(d.getAmount().add(amount));
+//
+//					// update existing amount in users Set where we are creditor
+//					u.getDebtsAsDebtor().add(d);
+//				}
+//			});
+//		});
+//	}
+
 	private void updateCreditorDebitorDebt(User creditor, List<User> membersInvolved, BigDecimal amount) {
-		Set<Debt> asCreditor = creditor.getDebtsAsCreditor();
-
-		asCreditor.forEach(d -> {
-			membersInvolved.forEach(u -> {
-				// finding out if these user owe us money already or not
-				if (!d.getDebtor().equals(u)) {
-					Debt newDebt = new Debt();
-					newDebt.setCreditor(creditor); // setting ourSelves as creditor
-					newDebt.setDebtor(u); // setting this user as debitor
-					newDebt.setAmount(amount);
-
-					debtDao.save(newDebt);
-
-					asCreditor.add(newDebt); // adding to our credit set
-
-					u.getDebtsAsDebtor().add(newDebt); // adding to users debit set
-				} else {
-					// update existing amount in ours Set where we are creditor
-					d.setAmount(d.getAmount().add(amount));
-
-					// update existing amount in users Set where we are creditor
-					u.getDebtsAsDebtor().add(d);
-				}
-			});
-		});
+	    for (User debtor : membersInvolved) {
+	        boolean debtExists = false;
+	        for (Debt debt : creditor.getDebtsAsCreditor()) {
+	            if (debt.getDebtor().equals(debtor)) {
+	                // Update existing debt amount
+	                debt.setAmount(debt.getAmount().add(amount));
+	                debtExists = true;
+	                break;
+	            }
+	        }
+	        if (!debtExists) {
+	            // Create a new debt
+	            Debt newDebt = new Debt();
+	            newDebt.setCreditor(creditor);
+	            newDebt.setDebtor(debtor);
+	            newDebt.setAmount(amount);
+	            debtDao.save(newDebt);
+	        }
+	    }
 	}
 
 }

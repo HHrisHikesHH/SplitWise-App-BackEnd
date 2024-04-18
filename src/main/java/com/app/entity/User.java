@@ -10,6 +10,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -40,7 +41,7 @@ public class User {
 	private Role role = Role.USER;
 	
 	@ManyToMany(mappedBy = "members")
-	private Set<Group> myGroups= new HashSet<>();
+	private List<Group> myGroups= new ArrayList<>();
 	// we can do transaction in a particular group only
 	
 	@OneToMany(mappedBy = "paidBy")
@@ -49,16 +50,14 @@ public class User {
 	// while return we will return this as well tx which involves us
 	
 	@OneToMany(mappedBy = "debtor")
-    private Set<Debt> debtsAsDebtor = new HashSet<>(); 
+    private List<Debt> debtsAsDebtor = new ArrayList<>(); 
 	// Debts where the user is the debtor
 
 	@OneToMany(mappedBy = "creditor")
-    private Set<Debt> debtsAsCreditor = new HashSet<>(); 
+    private List<Debt> debtsAsCreditor = new ArrayList<>(); 
 	// Debts where the user is the creditor
 	
 	private BigDecimal amountOwed = BigDecimal.ZERO; 
 	// Balance owed by the user
-	
-	
 	
 }
