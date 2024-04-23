@@ -22,23 +22,21 @@ import lombok.Data;
 @Data
 @Table(name = "group_tbl")
 public class Group {
-	
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private Integer groupId;
-	
+
 	private String groupName;
-	
-	@ManyToMany
-	@JoinTable(
-	    name = "user_group",
-	    joinColumns = @JoinColumn(name = "group_id"),
-	    inverseJoinColumns = @JoinColumn(name = "user_id")
-	)
-    private List<User> members = new ArrayList<>(); 
-	
+
+	@ManyToMany(cascade = CascadeType.ALL)
+	@JoinTable(name = "user_group", 
+		joinColumns = @JoinColumn(name = "group_id"), 
+		inverseJoinColumns = @JoinColumn(name = "user_id"))
+	private List<User> members = new ArrayList<>();
+
 	@OneToMany(mappedBy = "group", cascade = CascadeType.ALL)
-    private List<Transaction> transactions = new ArrayList<>(); 
+	private List<Transaction> transactions = new ArrayList<>();
 	// Transactions associated with the group
 
 }

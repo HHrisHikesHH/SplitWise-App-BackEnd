@@ -30,8 +30,9 @@ public class UserController {
 
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody LogInDTO userDto) {
+		System.err.print(userDto + " ");
 		boolean response = userService.login(userDto);
-		System.err.println(response + " " + userDto);
+		System.err.println(response);
 		if (response == true)
 			return ResponseEntity.ok().body(userDto);
 		else
